@@ -1,180 +1,187 @@
 
+# MediNotes Pro — Healthcare Consultation Assistant
 
-# 🚀 IdeaGen Pro — Production SaaS Generative AI Platform
+MediNotes Pro is a **demo healthcare consultation assistant** that helps clinicians transform raw consultation notes into three clear, structured outputs:
 
-IdeaGen Pro is a **production-grade SaaS Generative AI platform** built with a real-world full-stack architecture: secure authentication, real-time AI streaming, and subscription-ready design patterns.
+- **Summary** for medical records  
+- **Next steps** for clinician follow-up  
+- **Patient-friendly email** written in simple, non-technical language  
 
-The application follows **SaaS engineering standards** used in modern AI products—scalable frontend structure, secure backend APIs, and extensible access control that can be connected to paid plans when required.
-
----
-
-## 🌟 Product Overview
-
-IdeaGen Pro helps users generate high-quality business ideas using AI, delivered in real time through **streaming responses**.  
-The platform is designed to support **authenticated users, subscription tiers, and scalable AI workloads**.
+> ⚠️ **Demo only**  
+> This application is for product and engineering demonstration purposes.  
+> **Do not use with real patient data. Not for clinical use.**
 
 ---
 
-## ✨ Core Features
+## What It Does
 
-### 🔐 Authentication & Identity (Clerk)
-- Production-grade authentication using **Clerk**
-- Secure session handling and user management
-- Protected application routes
-- Token-based authorization between frontend and backend
+MediNotes Pro streamlines clinical documentation by using AI to:
 
-### ⚡ Generative AI Streaming (SSE)
-- AI-powered business idea generation
-- **Server-Sent Events (SSE)** for live streaming responses
-- Progressive UI updates as content is generated
-- Architecture designed for advanced model upgrades
-
-### 💳 Subscription-Ready SaaS Architecture
-- Feature gating and plan enforcement structure included
-- Billing UI/hooks prepared for activation (kept safely disabled until enabled)
-- Designed to enable paid plans without refactoring core product code
-
-### 🎨 User Experience
-- Modern UI with Tailwind CSS
-- Markdown rendering for AI-generated output
-- Clean landing page aligned with SaaS positioning
-- Smooth authenticated user flows
+- Generate a concise, structured consultation summary suitable for records
+- Produce clear next steps, follow-ups, and safety-netting guidance
+- Draft a patient-friendly email explaining outcomes and instructions
+- Stream responses in real time for fast feedback
+- Enforce authentication and subscription access controls
 
 ---
 
-## 🏗️ Tech Stack
+## How It Works
 
-**Frontend**
-- Next.js (Pages Router)
-- React + TypeScript
-- Tailwind CSS
-- React Markdown
-
-**Backend**
-- Next.js API Routes
-- Server-Sent Events (SSE)
-- JWT-secured API communication
-
-**Authentication**
-- Clerk (production identity provider)
-
-**Deployment**
-- Vercel (production deployments)
-- Environment-based configuration for secrets and keys
+1. A clinician signs in using secure authentication
+2. Consultation details are entered via a structured form:
+   - Patient name
+   - Date of visit
+   - Free-text consultation notes
+3. The frontend sends a **POST request** to the backend with a JWT
+4. The FastAPI backend:
+   - Validates input with Pydantic
+   - Verifies the Clerk authentication token
+   - Sends a structured prompt to OpenAI
+5. AI output is streamed back using **Server-Sent Events (SSE)** and rendered as formatted Markdown
 
 ---
 
-## 🔐 Security & Best Practices
-- No secrets committed to source control
-- All sensitive keys managed via environment variables
-- Auth-protected API routes
-- Deployment aligned with SaaS security standards
+## Tech Stack
+
+### Frontend
+- **Next.js** (Pages Router)
+- **TypeScript**
+- **Tailwind CSS**
+- **React Markdown**
+- **react-datepicker**
+
+### Authentication & Access Control
+- **Clerk**
+  - Secure authentication
+  - Protected routes
+  - Subscription gating (`Protect`, `PricingTable`)
+
+### Backend
+- **FastAPI** (Python)
+- **Pydantic** for request validation
+- **JWT verification** via Clerk
+- **OpenAI API** with streaming responses
+
+### Streaming
+- **Server-Sent Events (SSE)**
+- `@microsoft/fetch-event-source`
 
 ---
 
-## 📁 Project Structure
-
-```text
-src/
-├── pages/
-│   ├── index.tsx        # SaaS landing page
-│   ├── product.tsx      # Authenticated AI product page
-│   ├── api/             # Secure backend APIs (streaming)
-│   ├── _app.tsx         # Clerk + app configuration
-│   └── _document.tsx
-├── styles/
-│   └── globals.css
-````
-
----
-
-## 🚀 Getting Started (Local)
+## Local Setup
 
 ### 1) Install dependencies
 
 ```bash
 npm install
-```
+````
 
-### 2) Configure environment variables
-
-Create a `.env.local` file at the project root:
-
-```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-CLERK_JWKS_URL=
-OPENAI_API_KEY=
-```
-
-### 3) Run the development server
+### 2) Run the development server
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000` in your browser.
+Visit: [http://localhost:3000](http://localhost:3000)
+
+### 3) Production build check
+
+```bash
+npm run build
+```
 
 ---
 
-## 🌍 Deployment (Vercel)
+## Environment Variables
 
-Set the same environment variables in Vercel:
+Create a `.env.local` file at the project root.
+**Do not commit this file.**
 
-* `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-* `CLERK_SECRET_KEY`
-* `CLERK_JWKS_URL`
-* `OPENAI_API_KEY`
+```env
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=YOUR_VALUE_HERE
+CLERK_SECRET_KEY=YOUR_VALUE_HERE
+CLERK_JWKS_URL=YOUR_VALUE_HERE
 
-Deploy:
+# OpenAI
+OPENAI_API_KEY=YOUR_VALUE_HERE
+```
+
+---
+
+## Deployment (Vercel)
+
+Deploy the application using the Vercel CLI:
 
 ```bash
 vercel --prod
 ```
 
----
-
-## 🧠 SaaS Design Philosophy
-
-This project demonstrates:
-
-* How real SaaS AI products are structured end-to-end
-* How authentication integrates with secure backend APIs
-* Why streaming improves product UX
-* How subscription access control can be activated cleanly when needed
+Ensure the same environment variables are configured in the Vercel dashboard.
 
 ---
 
-## 🗺️ Roadmap
+## Example Consultation Input
 
-* Activate paid plans and billing enforcement
-* Usage-based limits per plan
-* Team/organization subscriptions
-* Analytics and monitoring
-* Multi-model routing / advanced prompt strategies
-
----
-
-## 📄 License
-
-MIT License. See the `LICENSE` file for details.
+**Patient Name:** Jane Smith
+**Date:** Today
+**Notes:**
+Patient presents with persistent cough for 2 weeks. No fever.
+Chest clear on examination. Blood pressure 120/80.
+Likely viral bronchitis. Prescribed rest and fluids.
+Follow up if symptoms persist beyond another week.
 
 ---
 
-## 👤 Author
+## Example Output
 
-**Param Purohit**
-Full-Stack / AI Engineer
+* **Summary:** Structured visit summary for medical records
+* **Next steps:** Follow-up guidance and safety-netting
+* **Patient email:** Clear, friendly explanation and instructions
+
+---
+
+## Security Notes
+
+* No consultation data is stored by default
+* Authentication is required for all API requests
+* This project does **not** implement HIPAA/GDPR compliance features
+* Additional measures would be required for real healthcare use:
+
+  * Encryption at rest
+  * Audit logging
+  * Role-based access control
+  * Patient consent management
+  * Data retention policies
+
+---
+
+## Troubleshooting
+
+### Build error: invalid UTF-8 sequence
+
+* Ensure files are saved as **UTF-8**
+* Avoid special characters like `•` in source code
+* Prefer ASCII separators such as `|` or `-`
+
+### Streaming issues
+
+* Confirm the API endpoint uses `POST`
+* Ensure the Authorization header includes a valid Clerk JWT
+* Check that SSE is not blocked by the browser or proxy
+
+---
+
+## Previous Documentation
+
+If this repository previously contained a different project or iteration, see
+`README-ARCHIVE.md` for the archived documentation.
+
+---
+
+## License
+
+MIT License
 
 ```
 
-### What to tell Codex to do (doc-only, safe)
-- Replace `README.md` with the above
-- Create a root `LICENSE` file with full MIT text (Copyright (c) 2026 Param Purohit)
-- Stage only `README.md` and `LICENSE`
-- Commit: `docs: production README and MIT license`
-- Push to `main`
-
-If you want, I can also give you the **exact MIT LICENSE file content** (so Codex can paste it verbatim).
-::contentReference[oaicite:0]{index=0}
-```

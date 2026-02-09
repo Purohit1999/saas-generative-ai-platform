@@ -1,15 +1,16 @@
+import Head from "next/head";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { AppProps } from "next/app";
+import "react-datepicker/dist/react-datepicker.css";
 import "../styles/globals.css";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      appearance={{
-        variables: { colorPrimary: "#000000" },
-      }}
-    >
+    <ClerkProvider {...pageProps}>
+      <Head>
+        <title>Healthcare Consultation Assistant</title>
+        <meta name="description" content="AI-powered medical consultation summaries" />
+      </Head>
       <Component {...pageProps} />
     </ClerkProvider>
   );

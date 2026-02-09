@@ -1,81 +1,65 @@
 import os
-from typing import Iterator
-
-from fastapi import FastAPI, Depends  # type: ignore
-from fastapi.responses import StreamingResponse  # type: ignore
-from fastapi_clerk_auth import (  # type: ignore
-    ClerkConfig,
-    ClerkHTTPBearer,
-    HTTPAuthorizationCredentials,
-)
-from openai import OpenAI  # type: ignore
+from fastapi import FastAPI, Depends
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from fastapi_clerk_auth import ClerkConfig, ClerkHTTPBearer, HTTPAuthorizationCredentials
+from openai import OpenAI
 
 app = FastAPI()
 
-jwks_url = os.getenv("CLERK_JWKS_URL")
-if not jwks_url:
-    # Fail fast with a clear error message if env var is missing
-    raise RuntimeError("CLERK_JWKS_URL is not set in environment variables.")
-
-clerk_config = ClerkConfig(jwks_url=jwks_url)
+clerk_config = ClerkConfig(jwks_url=os.getenv("CLERK_JWKS_URL"))
 clerk_guard = ClerkHTTPBearer(clerk_config)
 
-def sse_event(data: str) -> str:
-    # Ensure multi-line chunks are valid SSE
-    lines = data.splitlines() or [data]
-    return "".join(f"data: {line}\n" for line in lines) + "\n"
+class Visit(BaseModel):
+    patient_name: str
+    date_of_visit: str  # yyyy-mm-dd
+    notes: str
 
-@app.get("/")
-def idea(creds: HTTPAuthorizationCredentials = Depends(clerk_guard)):
-    # User ID from JWT (available for future use)
-    user_id = creds.decoded.get("sub")
+system_prompt = """
+You are provided with notes written by a doctor from a patient's visit.
+Your job is to summarize the visit for the doctor and provide an email.
+Reply with exactly three sections with the headings:
+### Summary of visit for the doctor's records
+### Next steps for the doctor
+### Draft of email to patient in patient-friendly language
+"""
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        def missing_key() -> Iterator[str]:
-            yield sse_event("ERROR: OPENAI_API_KEY is missing in environment variables.")
-        return StreamingResponse(missing_key(), media_type="text/event-stream")
+def user_prompt_for(visit: Visit) -> str:
+    return f"""Create the summary, next steps and draft email for:
+Patient Name: {visit.patient_name}
+Date of Visit: {visit.date_of_visit}
+Notes:
+{visit.notes}"""
 
-    client = OpenAI(api_key=api_key)
-
-    prompt = [
-        {
-            "role": "system",
-            "content": (
-                "You generate concise, high-quality SaaS business ideas. "
-                "Always format in clean Markdown."
-            ),
-        },
-        {
-            "role": "user",
-            "content": (
-                "Generate ONE new business idea for AI Agents.\n\n"
-                "Format in Markdown with this exact structure:\n"
-                "## Title\n"
-                "## Problem\n"
-                "## Solution\n"
-                "## Target Customers\n"
-                "## Why It Works\n"
-                "Use bullet points where helpful. Under 180 words."
-            ),
-        },
-    ]
+@app.post("/api")
+def consultation_summary(
+    visit: Visit,
+    creds: HTTPAuthorizationCredentials = Depends(clerk_guard),
+):
+    user_id = creds.decoded["sub"]  # available for audit logging later
+    client = OpenAI()
 
     stream = client.chat.completions.create(
         model="gpt-5-nano",
-        messages=prompt,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt_for(visit)},
+        ],
         stream=True,
     )
 
-    def event_stream() -> Iterator[str]:
-        try:
-            for chunk in stream:
-                delta = chunk.choices[0].delta
-                text = getattr(delta, "content", None)
-                if text:
-                    yield sse_event(text)
-            yield sse_event("[DONE]")
-        except Exception as e:
-            yield sse_event(f"ERROR: Streaming failed. Details: {str(e)}")
+    def event_stream():
+        for chunk in stream:
+            delta = chunk.choices[0].delta
+            text = getattr(delta, "content", None)
+            if text:
+                yield f"data: {text}\n\n"
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )
